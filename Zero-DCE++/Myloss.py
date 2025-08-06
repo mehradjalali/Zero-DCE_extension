@@ -72,6 +72,7 @@ class L_spa(nn.Module):
         # E = 25*(D_left + D_right + D_up +D_down)
 
         return E
+
 class L_exp(nn.Module):
 
     def __init__(self,patch_size):
@@ -102,6 +103,7 @@ class L_TV(nn.Module):
         h_tv = torch.pow((x[:,:,1:,:]-x[:,:,:h_x-1,:]),2).sum()
         w_tv = torch.pow((x[:,:,:,1:]-x[:,:,:,:w_x-1]),2).sum()
         return self.TVLoss_weight*2*(h_tv/count_h+w_tv/count_w)/batch_size
+
 class Sa_Loss(nn.Module):
     def __init__(self):
         super(Sa_Loss, self).__init__()
@@ -156,3 +158,30 @@ class perception_loss(nn.Module):
         h_relu_4_3 = h
         # out = (h_relu_1_2, h_relu_2_2, h_relu_3_3, h_relu_4_3)
         return h_relu_4_3
+    
+
+
+# From here, I'm going to add some loss functions so that the pictures have less noise.
+
+class Denoise_TV(nn.Module):
+    def __init__(self, weight=1.0):
+        super(Denoise_TV, self).__init__()
+        self.weight = weight
+
+    def forward(self, x):
+        loss = torch.mean(torch.abs(x[:, :, :, :-1] - x[:, :, :, 1:])) + \
+               torch.mean(torch.abs(x[:, :, :-1, :] - x[:, :, 1:, :]))
+        return self.weight * loss
+
+class ColorSmoothnessLoss(nn.Module):
+    def __init__(self, weight=1.0):
+        super(ColorSmoothnessLoss, self).__init__()
+        self.weight = weight
+
+    def forward(self, x):
+        r, g, b = x[:,0:1,:,:], x[:,1:2,:,:], x[:,2:3,:,:]
+        rg = torch.mean(torch.abs(r - g))
+        rb = torch.mean(torch.abs(r - b))
+        gb = torch.mean(torch.abs(g - b))
+        loss = rg + rb + gb
+        return self.weight * loss

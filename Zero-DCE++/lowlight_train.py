@@ -46,6 +46,8 @@ def train(config):
 	L_exp = Myloss.L_exp(16)
 	# L_exp = Myloss.L_exp(16,0.6)
 	L_TV = Myloss.L_TV()
+	L_denoise_tv = Myloss.Denoise_TV(weight = 1.0)
+	L_color_smooth = Myloss.ColorSmoothnessLoss(weight = 1.0)
 
 
 	optimizer = torch.optim.Adam(DCE_net.parameters(), lr=config.lr, weight_decay=config.weight_decay)
@@ -67,9 +69,15 @@ def train(config):
 
 			loss_exp = 10*torch.mean(L_exp(enhanced_image,E))
 
+			############### Adding custom loss functions here ############### 
+			# Total Variation Loss (on the output image, not on the alpha map)
+			loss_denoise = 0.01 * L_denoise_tv (enhanced_image)
 			
+			# Color Smoothness Loss
+			loss_colorSmooth = 0.001 * L_color_smooth(enhanced_image)
+
 			# best_loss
-			loss =  Loss_TV + loss_spa + loss_col + loss_exp
+			loss =  Loss_TV + loss_spa + loss_col + loss_exp + loss_denoise + loss_colorSmooth
 
 
 			
